@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizza Utenti</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #f2f2f2; cursor: pointer; position: relative; }
+        button { padding: 5px 10px; cursor: pointer; }
+        select { padding: 5px; }
+        .filter-form { margin-bottom: 20px; }
+        .search-container { margin-bottom: 20px; }
+        .filter-select { margin-left: 5px; }
+        /* Stile per il pulsante Cancella */
+        .delete-button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .delete-button:hover {
+            background-color: darkred;
+        }
+        .total-users {
+            color: #fff;
+            background-color: #28a745;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+        } 
+        .total-users-not-approved {
+            color: #fff;
+            background-color: red;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+        }
+        .approved_but_not_sent {
+            color: #fff;
+            background-color: #eed530;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+        }   
+    </style>
+</head>
+<body>
+    <h1>
+        Soci Tesserati
+        <span class="total-users">{{ total_users }}</span>
+    </h1>
+    <h1 style="font-size: 1.4em; font-weight: normal;">
+        Soci da Approvare
+        <span class="total-users-not-approved">{{ total_users_not_approved }}</span>
+    </h1>
+    <h1 style="font-size: 1.4em; font-weight: normal;">
+        Soci Approvati ma non Tesserati (invio tessera)
+        <span class="approved_but_not_sent">{{ approved_but_not_sent }}</span>
+    </h1>
+
+    <!-- Form di filtro e pulsante statistiche -->
+    <form method="GET" action="{{ url_for('view_users') }}" class="filter-form" style="display: flex; align-items: center; gap: 10px;">
+        <label for="approvato">Approvato:</label>
+        <select name="approvato">
+            <option value="SI" {% if request.args.get('approvato', 'NO') == 'SI' %}selected{% endif %}>SI</option>
+            <option value="NO" {% if request.args.get('approvato', 'NO') == 'NO' %}selected{% endif %}>NO</option>
+        </select>
+
+        <button type="submit">Filtra</button>
+
+        <!-- Pulsante per le statistiche soci -->
+        <a href="{{ url_for('statistics') }}">
+            <button type="button" style="padding: 10px 20px; background-color: #426faa; color: white; border: none; cursor: pointer;">
+                Statistiche Soci
+            </button>
+        </a>
+    </form>
+
+    <!-- Campo di ricerca globale -->
+    <div class="search-container">
+        <label for="searchInput">Cerca:</label>
+        <input type="text" id="searchInput" placeholder="Cerca in tutte le colonne..." onkeyup="find()">
+    </div>
+
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Email</th>
+                <th>Città</th>
+                <th>Data di Nascita</th>
+                <th>Residenza</th>
+                <th>
+                    Sesso
+                    <select id="genderFilter" class="filter-select" onchange="filterByGender()">
+                        <option value="">Tutti</option>
+                        <option value="Maschile">Maschile</option>
+                        <option value="Femminile">Femminile</option>
+                    </select>
+                </th>
+                <th>Numero Documento</th>
+                <th>File</th>
+                <th>Approvato</th>
+                <th>
+                    Inviato
+                    <select id="inviatoFilter" class="filter-select" onchange="filterByInviato()">
+                        <option value="">Tutti</option>
+                        <option value="SI">SI</option>
+                        <option value="NO">NO</option>
+                    </select>
+                </th>
+                <th>
+                    Data Registrazione
+                    <button onclick="sortTableByDate()" style="border: none; background: none; cursor: pointer;">
+                        🔽/🔼
+                    </button>
+                </th>
+                <th>Manuale</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.nome }}</td>
+                <td>{{ user.cognome }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.citta }}</td>
+                <td>{{ user.data }}</td>
+                <td>{{ user.residenza }}</td>
+                <td>{{ user.sesso }}</td>
+                <td>{{ user.carta_identita }}</td>
+                <td>
+                    {% if user.file %}
+                        <a href="{{ url_for('download_file', filename=user.file) }}">Scarica</a>
+                    {% else %}
+                        Nessun file
+                    {% endif %}
+                </td>
+                <td>{{ user.approvato }}</td>
+                <td>{{ user.inviato }}</td>
+                <td>{{ user.data_registrazione }}</td>
+                <td>{{ user.manuale }}</td>
+                <td>
+                    <form action="{{ url_for('update_approval', user_id=user.id) }}" method="POST">
+                        <button type="submit">Approva</button>
+                    </form>
+                    <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" onsubmit="return confirm('Sei sicuro di voler eliminare questo utente?');">
+                        <button type="submit" style="background-color: red; color: white;">Cancella</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Funzione per la ricerca globale
+        function find() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const rows = document.querySelectorAll("#userTable tbody tr");
+            rows.forEach(row => {
+                const cells = Array.from(row.cells);
+                const match = cells.some(cell => cell.innerText.toLowerCase().includes(input));
+                row.style.display = match ? "" : "none";
+            });
+        }
+
+        // Funzione per filtrare per sesso
+        function filterByGender() {
+            const gender = document.getElementById("genderFilter").value.toLowerCase();
+            const rows = document.querySelectorAll("#userTable tbody tr");
+            rows.forEach(row => {
+                const genderCell = row.cells[6].innerText.toLowerCase();
+                row.style.display = gender === "" || genderCell === gender ? "" : "none";
+            });
+        }
+
+        // Funzione per filtrare per "Inviato"
+        function filterByInviato() {
+            const inviato = document.getElementById("inviatoFilter").value.toLowerCase();
+            const rows = document.querySelectorAll("#userTable tbody tr");
+            rows.forEach(row => {
+                const inviatoCell = row.cells[10].innerText.toLowerCase();
+                row.style.display = inviato === "" || inviatoCell === inviato ? "" : "none";
+            });
+        }
+
+        // Funzione per ordinare la tabella per data
+        let sortAscending = true; // Stato dell'ordinamento
+
+        function sortTableByDate() {
+            const table = document.getElementById("userTable");
+            const rows = Array.from(table.tBodies[0].rows);
+
+            rows.sort((a, b) => {
+                const dateA = new Date(a.cells[11].innerText.trim());
+                const dateB = new Date(b.cells[11].innerText.trim());
+
+                return sortAscending ? dateB - dateA : dateA - dateB;
+            });
+
+            // Aggiorna l'ordine delle righe nella tabella
+            rows.forEach(row => table.tBodies[0].appendChild(row));
+
+            // Cambia lo stato dell'ordinamento
+            sortAscending = !sortAscending;
+        }
+    </script>
+</body>
+</html>

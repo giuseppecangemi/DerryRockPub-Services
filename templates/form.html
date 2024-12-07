@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if language == 'en' %}Registration Form{% else %}Modulo di Inserimento{% endif %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="file"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        input[type="submit"] {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+        }
+        .required:after {
+            content: "*";
+            color: red;
+            margin-left: 5px;
+        }
+        .success {
+            color: green;
+            font-size: 1em;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+        .small-underline-message {
+            font-size: 0.9em;
+            text-decoration: underline;
+            color: #333;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .language-switcher {
+            text-align: left;
+        }
+        .language-switcher img {
+            width: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        /* Tooltip container */
+        .file-upload-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Information icon styling (for the image) */
+        .info-icon img {
+            width: 25px;  
+            height: 25px;
+            cursor: pointer;
+            vertical-align: middle;  
+        }
+
+        /* Tooltip text (message next to the icon) */
+        .info-icon {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px; /* Small space between the file input and icon */
+        }
+
+        .info-icon:hover::after {
+            content: attr(title);  /* Display the message on hover */
+            position: absolute;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 5px;
+            padding: 8px;
+            width: 200px;
+            left: 100%; /* Position it to the right of the icon */
+            margin-left: 10px;  /* Space between the icon and the tooltip */
+            top: 50%;  /* Vertically center the tooltip */
+            transform: translateY(-50%); /* Adjust vertically to align with the icon */
+            opacity: 0.9;
+            z-index: 1;
+        }
+
+        /* Tooltip arrow for the info icon */
+        .info-icon:hover::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: -10px;  /* Position the arrow at the left of the tooltip */
+            margin-top: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent transparent #555;
+        }
+
+        /* CSS per il messaggio di successo */
+        .flash-message {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: none;  /* Inizialmente nascosto */
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .flash-message.show {
+            display: block;
+            opacity: 1;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 128, 0, 0.8);  /* Verde con trasparenza */
+            z-index: 9998;  /* Un livello sotto il messaggio di flash */
+            display: none;  /* Inizialmente nascosto */
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logo section -->
+    <div class="logo">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" style="max-width: 100px;">
+    </div>
+    <div class="language-switcher">
+        <a href="{{ url_for('set_language', lang_code='it') }}">
+            <img src="{{ url_for('static', filename='img/italy.png') }}" alt="Italiano">
+        </a>
+        <a href="{{ url_for('set_language', lang_code='en') }}">
+            <img src="{{ url_for('static', filename='img/uk.png') }}" alt="English">
+        </a>
+    </div>
+    <h1>
+        {% if language == 'en' %}
+            Registration for Derry Rock Pub Rome Members
+        {% else %}
+            Registrazione Soci Derry Rock Pub Roma
+        {% endif %}
+    </h1>
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Visualizzazione dei messaggi flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flashMessage" class="flash-message success show"> <!-- Aggiunta della classe 'show' -->
+                {% for category, message in messages %}
+                    {% if category == 'success' %}
+                        <p>{{ message }}</p>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+            
+    <form action="/submit" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+        <label for="nome" class="required">
+            {% if language == 'en' %}First Name:{% else %}Nome:{% endif %}
+        </label>
+        <input type="text" name="nome" required>
+
+        <label for="cognome" class="required">
+            {% if language == 'en' %}Last Name:{% else %}Cognome:{% endif %}
+        </label>
+        <input type="text" name="cognome" required>
+
+        <label for="email" class="required">
+            {% if language == 'en' %}Email:{% else %}Email:{% endif %}
+        </label>
+        <input type="email" name="email" required>
+
+        <label for="citta" class="required">
+            {% if language == 'en' %}City:{% else %}Città:{% endif %}
+        </label>
+        <input type="text" name="citta" required>
+
+        <label for="data" class="required">
+            {% if language == 'en' %}Date of Birth:{% else %}Data di nascita:{% endif %}
+        </label>
+        <input type="date" name="data" required min="1900-01-01" max="{{ current_date }}" oninput="validateDate(this)">
+        <span id="dateError" class="error-message"></span>
+
+        <label for="residenza" class="required">
+            {% if language == 'en' %}Address:{% else %}Residenza:{% endif %}
+        </label>
+        <input type="text" name="residenza" required>
+
+        <label for="sesso" class="required">
+            {% if language == 'en' %}Gender:{% else %}Sesso:{% endif %}
+        </label>
+        <select name="sesso" required>
+            <option value="">{% if language == 'en' %}Select{% else %}Seleziona{% endif %}</option>
+            <option value="Maschile">{% if language == 'en' %}Male{% else %}Maschile{% endif %}</option>
+            <option value="Femminile">{% if language == 'en' %}Female{% else %}Femminile{% endif %}</option>
+            <option value="Altro">{% if language == 'en' %}Other{% else %}Altro{% endif %}</option>
+        </select>
+
+        <label class="small-underline-message">
+            {% if language == 'en' %}
+            Please upload a document (identity card, tax code, or driver's license). If you don't have it with you, you can upload a file below (click on "Upload a file"). A selfie is also fine:
+            {% else %}
+                Inserisci un documento (carta d'identità, codice fiscale, patente) se non lo hai con te puoi caricare un file qui sotto (clicca su "Scegli File"), va bene anche un selfie:
+            {% endif %}
+        </label>
+
+        <label for="carta_identita">
+            {% if language == 'en' %}Document Number:{% else %}Numero Documento:{% endif %}
+        </label>
+        <input type="text" name="carta_identita" id="carta_identita">
+        <span id="cartaIdentitaError" class="error-message"></span>
+
+
+        <label for="file">
+            {% if language == 'en' %}Upload a file:{% else %}Carica un file:{% endif %}
+        </label>
+                <!-- Information icon (using an image) -->
+                <span class="info-icon" title="{% if language == 'en' %}This is where you need to upload the file if you don't have the document with you. Take a selfie or upload a photo of the document.{% else %}Qui è dove devi caricare il file se non hai il documento con te, scatta un selfie o inserisci foto documento{% endif %}">
+                    <img src="{{ url_for('static', filename='img/info_icon.png') }}" alt="Info" />
+                </span>
+            </div>
+        <!-- Tooltip container for file input -->
+        <div class="file-upload-container">
+            <input type="file" name="file" id="file" accept="image/*">
+        </div>
+            
+            
+
+        <label class="required">
+            <input type="checkbox" name="presa_visione_statuto" required>
+            {% if language == 'en' %}
+                Acknowledged the <a href="{{ url_for('static', filename='statuto.pdf') }}" target="_blank">statute</a>
+            {% else %}
+                Presa visione dello <a href="{{ url_for('static', filename='statuto.pdf') }}" target="_blank">statuto</a>
+            {% endif %}
+        </label>
+        
+        <label class="required">
+            <input type="checkbox" name="dichiarazioni_mendaci" required>
+            {% if language == 'en' %}
+                Aware of the consequences regarding false declarations: requests admission to the "DERRY ROCK Pub" as a member of the CULTURAL ASSOCIATION BLOB through the issuance of the E.N.T.E.S card.
+            {% else %}
+                Consapevole delle conseguenze in merito a dichiarazioni mendaci: chiede l'ammissione al "DERRY ROCK Pub" come socio dell'ASSOCIAZIONE CULTURALE BLOB tramite rilascio della tessera E.N.T.E.S.
+            {% endif %}
+        </label>
+        
+        <label class="required">
+            <input type="checkbox" name="trattamento_dati" required>
+            {% if language == 'en' %}
+                I authorize the processing of personal data only for registration purposes (Art. 13 GDPR 679/16)
+            {% else %}
+                Autorizzo al trattamento dei dati personali solo per la registrazione (art. 13 GDPR 679/16)
+            {% endif %}
+        </label>
+        
+        <input type="submit" value="{% if language == 'en' %}Submit{% else %}Invia{% endif %}">
+        
+
+    </form>
+
+    <script>
+        function validateDate(input) {
+            const maxDate = new Date().toISOString().split("T")[0];
+            const errorSpan = document.getElementById("dateError");
+            if (input.value > maxDate || input.value < "1900-01-01") {
+                errorSpan.textContent = "{% if language == 'en' %}Enter a valid date between 1900 and today.{% else %}Inserisci una data valida compresa tra il 1900 e oggi.{% endif %}";
+                input.value = "";
+            } else {
+                errorSpan.textContent = "";
+            }
+        }
+
+        function validateForm() {
+            const cartaIdentita = document.getElementById("carta_identita").value;
+            const file = document.getElementById("file").files.length;
+            const cartaIdentitaError = document.getElementById("cartaIdentitaError");
+
+            if (!cartaIdentita && file === 0) {
+                cartaIdentitaError.textContent = "{% if language == 'en' %}Enter the document number or upload a photo.{% else %}Inserisci il numero della carta d'identità o carica una foto.{% endif %}";
+                return false;
+            } else {
+                cartaIdentitaError.textContent = "";
+            }
+            return true;
+        }
+    </script>
+    <script>
+        window.onload = function() {
+            const flashMessage = document.getElementById("flashMessage");
+            if (flashMessage) {
+                setTimeout(function() {
+                    flashMessage.classList.remove("show"); // Rimuove la classe 'show' per nascondere il messaggio
+                }, 5000); // Dopo 5 secondi
+            }
+        }
+        window.onload = function() {
+            const flashMessage = document.getElementById("flashMessage");
+            const overlay = document.getElementById("overlay");
+
+            if (flashMessage) {
+                // Mostra l'overlay verde
+                overlay.style.display = 'block';
+                setTimeout(function() {
+                    overlay.style.opacity = 1;
+                }, 0); // Immediatamente dopo il caricamento
+
+                // Nascondi l'overlay e il messaggio flash dopo 5 secondi
+                setTimeout(function() {
+                    overlay.style.opacity = 0;
+                    flashMessage.classList.remove("show"); // Nascondi il messaggio di successo
+                    setTimeout(function() {
+                        overlay.style.display = 'none'; // Nascondi completamente l'overlay
+                    }, 500); // Dopo che la transizione dell'overlay è finita
+                }, 5000); // Dopo 5 secondi
+            }
+        }
+    </script>
+</body>
+</html>

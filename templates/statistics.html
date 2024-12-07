@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiche Soci</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .chart { margin-bottom: 30px; }
+        h1, h2 { color: #333; }
+        select, button { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Statistiche Soci</h1>
+
+    <!-- Filtro per selezionare il grafico -->
+    <form method="GET" action="{{ url_for('statistics') }}">
+        <label for="grafico">Scegli il grafico da visualizzare:</label>
+        <select name="grafico" id="grafico">
+            <option value="registrazioni_giornaliere" {% if request.args.get('grafico') == 'registrazioni_giornaliere' %}selected{% endif %}>Andamento delle Registrazioni Giornaliere</option>
+            <option value="variazioni_percentuali" {% if request.args.get('grafico') == 'variazioni_percentuali' %}selected{% endif %}>Variazioni Percentuali delle Registrazioni</option>
+            <option value="distribuzione_sesso" {% if request.args.get('grafico') == 'distribuzione_sesso' %}selected{% endif %}>Distribuzione Sesso</option>
+        </select>
+        <button type="submit">Mostra Grafico</button>
+    </form>
+
+    <div class="charts">
+        {% if request.args.get('grafico') == 'registrazioni_giornaliere' %}
+        <!-- Grafico Registrazioni Giornaliere -->
+        <div class="chart">
+            <h2>Andamento delle Registrazioni Giornaliere</h2>
+            <img src="{{ url_for('registrazioni_giornaliere_chart') }}" alt="Grafico Registrazioni Giornaliere">
+        </div>
+        {% elif request.args.get('grafico') == 'variazioni_percentuali' %}
+        <!-- Grafico Variazioni Percentuali -->
+        <div class="chart">
+            <h2>Variazioni Percentuali delle Registrazioni</h2>
+            <img src="{{ url_for('variazioni_percentuali_chart') }}" alt="Grafico Variazioni Percentuali">
+        </div>
+        {% elif request.args.get('grafico') == 'distribuzione_sesso' %}
+        <!-- Grafico Distribuzione Sesso -->
+        <div class="chart">
+            <h2>Distribuzione Sesso</h2>
+            <img src="{{ url_for('distribuzione_sesso_chart') }}" alt="Grafico Distribuzione Sesso">
+        </div>
+        {% else %}
+        <p></p>
+        {% endif %}
+    </div>
+
+    <!-- Pulsante per tornare alla pagina principale -->
+    <a href="{{ url_for('view_users') }}">
+        <button style="padding: 10px 20px; background-color: #f44336; color: white; border: none; cursor: pointer;">Torna indietro</button>
+    </a>
+</body>
+</html>
